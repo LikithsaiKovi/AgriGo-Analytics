@@ -1,6 +1,7 @@
 FROM node:18-bullseye
 
-WORKDIR /app
+# Use /app/server as working directory to avoid path issues when build context is repo root
+WORKDIR /app/server
 
 # System deps (Python for the scheme fetcher + build tools for sqlite3)
 RUN apt-get update \
@@ -8,15 +9,15 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 # Install backend deps
-COPY package*.json ./
+COPY server/package*.json ./
 RUN npm install --only=production
 
 # Install Python deps used by gov_schemes_fetcher.py
-COPY requirements.txt ./requirements.txt
+COPY server/requirements.txt ./requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Copy source
-COPY . .
+# Copy backend source
+COPY server/. .
 
 ENV NODE_ENV=production
 ENV PORT=5000

@@ -6,29 +6,13 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 const axios = require('axios');
 const config = require('./config');
-<<<<<<< HEAD
-const { db, initDatabase } = require('./database');
-=======
 const { initDatabase, models } = require('./database');
 const { User, Otp, RegistrationOtp } = models;
->>>>>>> 08b5de3 (Prepare AgriGo for Railway deployment (MongoDB, dependency fixes, environment configs))
 const EmailService = require('./emailService');
 const WeatherService = require('./weatherService');
 
 const app = express();
 const server = createServer(app);
-<<<<<<< HEAD
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
-});
-
-// Middleware
-app.use(cors());
-=======
-
 const allowedOrigins = config.clientOrigin
   .split(',')
   .map(origin => origin.trim())
@@ -44,23 +28,13 @@ const io = new Server(server, { cors: corsOptions });
 
 // Middleware
 app.use(cors(corsOptions));
->>>>>>> 08b5de3 (Prepare AgriGo for Railway deployment (MongoDB, dependency fixes, environment configs))
 app.use(express.json());
 
 // Initialize services
 const emailService = new EmailService();
 const weatherService = new WeatherService();
 
-<<<<<<< HEAD
-// Initialize database
-initDatabase().then(() => {
-  console.log('Database initialized');
-}).catch(err => {
-  console.error('Database initialization failed:', err);
-});
-
-=======
->>>>>>> 08b5de3 (Prepare AgriGo for Railway deployment (MongoDB, dependency fixes, environment configs))
+// DB initialized at bottom before listen
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -102,21 +76,12 @@ app.post('/api/auth/send-otp', async (req, res) => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Store OTP in database
-<<<<<<< HEAD
-    const stmt = db.prepare(`
-      INSERT INTO otps (email, otp, expires_at)
-      VALUES (?, ?, ?)
-    `);
-    stmt.run(normalizedEmail, otp, expiresAt.toISOString());
-    stmt.finalize();
-=======
     await Otp.create({
       email: normalizedEmail,
       otp,
       expiresAt,
       used: false
     });
->>>>>>> 08b5de3 (Prepare AgriGo for Railway deployment (MongoDB, dependency fixes, environment configs))
 
     console.log('Login OTP generated for:', normalizedEmail, 'OTP:', otp);
 
@@ -155,68 +120,6 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     console.log('Verifying login OTP for:', normalizedEmail, 'with OTP:', normalizedOtp);
 
     // Check OTP validity with strict validation
-<<<<<<< HEAD
-    db.get(`
-      SELECT * FROM otps 
-      WHERE email = ? AND otp = ? AND julianday(expires_at) > julianday('now') AND used = 0
-      ORDER BY created_at DESC
-      LIMIT 1
-    `, [normalizedEmail, normalizedOtp], async (err, row) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-      }
-
-      console.log('Found login OTP row:', row);
-
-      if (!row) {
-        console.log('No valid OTP found for email:', normalizedEmail);
-        return res.status(400).json({ error: 'Invalid or expired OTP. Please request a new OTP.' });
-      }
-
-      // Atomically mark OTP as used (guard against duplicate submissions)
-      db.run('UPDATE otps SET used = 1 WHERE id = ? AND used = 0', [row.id], function(err) {
-        if (err) {
-          console.error('Error marking OTP as used:', err);
-          return res.status(500).json({ error: 'Database error' });
-        }
-        if (this.changes === 0) {
-          console.log('OTP already used for email:', normalizedEmail);
-          return res.status(400).json({ error: 'Invalid or expired OTP. Please request a new OTP.' });
-        }
-
-        // Check if user exists
-        db.get('SELECT * FROM users WHERE email = ?', [normalizedEmail], async (err, user) => {
-          if (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({ error: 'Database error' });
-          }
-
-          if (!user) {
-            return res.status(400).json({ error: 'User not found. Please register first.' });
-          }
-
-          // Generate JWT token
-          const token = jwt.sign(
-            { email: normalizedEmail, userId: user.id },
-            config.jwt.secret,
-            { expiresIn: config.jwt.expiresIn }
-          );
-
-          res.json({
-            success: true,
-            data: {
-              token,
-              user: {
-                email: user.email,
-                name: user.name,
-                farmSize: user.farm_size
-              }
-            }
-          });
-        });
-      });
-=======
     const otpDoc = await Otp.findOne({
       email: normalizedEmail,
       otp: normalizedOtp,
@@ -261,7 +164,6 @@ app.post('/api/auth/verify-otp', async (req, res) => {
           farmSize: user.farmSize
         }
       }
->>>>>>> 08b5de3 (Prepare AgriGo for Railway deployment (MongoDB, dependency fixes, environment configs))
     });
   } catch (error) {
     console.error('Error verifying OTP:', error);
@@ -285,53 +187,6 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Please enter a valid email address' });
     }
 
-<<<<<<< HEAD
-    // Check if user already exists
-    db.get('SELECT * FROM users WHERE email = ?', [normalizedEmail], async (err, existingUser) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-      }
-
-      if (existingUser) {
-        return res.status(400).json({ error: 'An account with this email already exists. Please use a different email or try logging in.' });
-      }
-
-      // Generate 6-digit OTP for registration
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-      // Store registration data and OTP in database
-      const stmt = db.prepare(`
-        INSERT INTO registration_otps (email, name, farm_size, otp, expires_at)
-        VALUES (?, ?, ?, ?, ?)
-      `);
-      stmt.run(normalizedEmail, name, farmSize, otp, expiresAt.toISOString(), async (err) => {
-        if (err) {
-          console.error('Error storing registration OTP:', err);
-          return res.status(500).json({ error: 'Failed to store registration data' });
-        }
-        stmt.finalize();
-        console.log('Registration OTP stored for:', normalizedEmail, 'OTP:', otp);
-
-        // Send OTP via email
-        const emailResult = await emailService.sendRegistrationOTP(normalizedEmail, name, otp);
-
-        if (emailResult.success) {
-          res.json({ 
-            success: true, 
-            message: 'OTP sent to your email for account verification',
-            data: { expiresIn: 600 } // 10 minutes in seconds
-          });
-        } else {
-          console.error('Email sending failed:', emailResult.error);
-        res.status(500).json({ 
-          error: 'Failed to send registration OTP email. Please check your email configuration.' 
-        });
-        }
-      });
-    });
-=======
     const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
@@ -366,7 +221,6 @@ app.post('/api/auth/register', async (req, res) => {
         error: 'Failed to send registration OTP email. Please check your email configuration.' 
       });
     }
->>>>>>> 08b5de3 (Prepare AgriGo for Railway deployment (MongoDB, dependency fixes, environment configs))
   } catch (error) {
     console.error('Error registering user:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -520,7 +374,6 @@ app.post('/api/auth/verify-registration', async (req, res) => {
           farmSize: regOtp.farmSize
         }
       }
->>>>>>> 08b5de3 (Prepare AgriGo for Railway deployment (MongoDB, dependency fixes, environment configs))
     });
   } catch (error) {
     console.error('Error verifying registration OTP:', error);
