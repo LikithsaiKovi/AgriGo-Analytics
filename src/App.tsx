@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { LoginPage } from "./components/LoginPage";
 import { Navbar } from "./components/Navbar";
 import { Sidebar } from "./components/Sidebar";
@@ -8,7 +8,13 @@ import { SoilHealthPage } from "./components/SoilHealthPage";
 import { CropAnalyticsPage } from "./components/CropAnalyticsPage";
 import { MarketTrendsPage } from "./components/MarketTrendsPage";
 import { ReportsPage } from "./components/ReportsPage";
+import { FinancialPlanning } from "./components/FinancialPlanning";
+import { FarmerCommunity } from "./components/FarmerCommunity";
+import { GovernmentSchemes } from "./components/GovernmentSchemes";
+import { TestGovernmentSchemes } from "./components/TestGovernmentSchemes";
 import { Toaster } from "./components/ui/sonner";
+import { LanguageProvider } from "./contexts/LanguageContext";
+import { LanguageSelector } from "./components/LanguageSelector";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -43,10 +49,10 @@ export default function App() {
 
   if (!isLoggedIn) {
     return (
-      <>
+      <LanguageProvider>
         <LoginPage onLogin={handleLogin} />
         <Toaster />
-      </>
+      </LanguageProvider>
     );
   }
 
@@ -62,6 +68,12 @@ export default function App() {
         return <CropAnalyticsPage />;
       case "market":
         return <MarketTrendsPage />;
+      case "financial":
+        return <FinancialPlanning />;
+      case "community":
+        return <FarmerCommunity />;
+      case "government":
+        return <GovernmentSchemes />;
       case "reports":
         return <ReportsPage />;
       default:
@@ -70,13 +82,15 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar user={user} onLogout={handleLogout} />
-      <div className="flex">
-        <Sidebar activePage={activePage} onNavigate={setActivePage} />
-        {renderPage()}
+    <LanguageProvider>
+      <div className="min-h-screen bg-background">
+        <Navbar user={user} onLogout={handleLogout} />
+        <div className="flex">
+          <Sidebar activePage={activePage} onNavigate={setActivePage} onLogout={handleLogout} />
+          {renderPage()}
+        </div>
+        <Toaster />
       </div>
-      <Toaster />
-    </div>
+    </LanguageProvider>
   );
 }

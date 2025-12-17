@@ -9,12 +9,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { apiService } from "../services/api";
 import { toast } from "sonner";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface LoginPageProps {
   onLogin: () => void;
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
@@ -27,7 +29,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   const handleSendOTP = async () => {
     if (!email) {
-      setError("Please enter your email address");
+      setError(t("email.required"));
       return;
     }
 
@@ -53,8 +55,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           });
         }, 1000);
       } else {
-        setError(response.error || "Failed to send OTP");
-        toast.error(response.error || "Failed to send OTP");
+        // Handle specific error for user not found
+        if (response.code === 'USER_NOT_FOUND') {
+          setError(t("no.account"));
+          toast.error(t("no.account"));
+        } else {
+          setError(response.error || "Failed to send OTP");
+          toast.error(response.error || "Failed to send OTP");
+        }
       }
     } catch (error) {
       setError("Network error. Please try again.");
@@ -202,24 +210,24 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 />
               </svg>
             </div>
-            <h1 className="text-primary mb-2">AgroAnalytics</h1>
+            <h1 className="text-primary mb-2">{t("app.title")}</h1>
             <p className="text-muted-foreground">
-              Smart Agriculture Analytics Platform
+              {t("app.subtitle")}
             </p>
           </div>
 
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsTrigger value="login">{t("login.tab")}</TabsTrigger>
+              <TabsTrigger value="signup">{t("signup.tab")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
               <Card>
                 <CardHeader>
-                  <CardTitle>Welcome Back</CardTitle>
+                  <CardTitle>{t("login.welcome")}</CardTitle>
                   <CardDescription>
-                    Enter your email to receive a one-time password
+                    {t("login.description")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -230,15 +238,23 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     </div>
                   )}
 
+                  {error && error.includes("No account found") && (
+                    <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-700">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-sm">
+                        {t("switch.tab")}
+                      </span>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email">{t("email.label")}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="email"
                         type="email"
-                        placeholder="farmer@example.com"
+                        placeholder={t("email.placeholder")}
                         className="pl-10"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -257,22 +273,22 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       {isLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Sending OTP...
+                          {t("sending.otp")}
                         </>
                       ) : (
-                        "Send OTP to my email"
+                        t("send.otp")
                       )}
                     </Button>
                   ) : (
                     <>
                       <div className="space-y-2">
-                        <Label htmlFor="otp">One-Time Password</Label>
+                        <Label htmlFor="otp">{t("otp.label")}</Label>
                         <div className="relative">
                           <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input
                             id="otp"
                             type="text"
-                            placeholder="Enter OTP"
+                            placeholder={t("otp.placeholder")}
                             className="pl-10"
                             value={otp}
                             onChange={(e) => setOtp(e.target.value)}
@@ -281,7 +297,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
-                            OTP expires in: {formatTime(otpExpiresIn)}
+                            {t("otp.expires")} {formatTime(otpExpiresIn)}
                           </span>
                           <Button
                             variant="link"
@@ -289,7 +305,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                             onClick={handleSendOTP}
                             disabled={isLoading}
                           >
-                            Resend OTP
+                            {t("otp.resend")}
                           </Button>
                         </div>
                       </div>
@@ -303,11 +319,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                         {isLoading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Verifying...
+                            {t("verifying")}
                           </>
                         ) : (
                           <>
-                            Get Started
+                            {t("get.started")}
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </>
                         )}
@@ -321,11 +337,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             <TabsContent value="signup">
               <Card>
                 <CardHeader>
-                  <CardTitle>Create Account</CardTitle>
+                  <CardTitle>{t("signup.title")}</CardTitle>
                   <CardDescription>
                     {registrationStep === 'form' 
-                      ? 'Join thousands of farmers using smart analytics'
-                      : 'Verify your email to complete account creation'
+                      ? t("signup.description")
+                      : t("signup.verify")
                     }
                   </CardDescription>
                 </CardHeader>
@@ -340,11 +356,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   {registrationStep === 'form' ? (
                     <>
                       <div className="space-y-2">
-                        <Label htmlFor="signup-name">Full Name</Label>
+                        <Label htmlFor="signup-name">{t("name.label")}</Label>
                         <Input
                           id="signup-name"
                           type="text"
-                          placeholder="John Farmer"
+                          placeholder={t("name.placeholder")}
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           disabled={isLoading}
@@ -352,13 +368,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="signup-email">Email Address</Label>
+                        <Label htmlFor="signup-email">{t("email.label")}</Label>
                         <div className="relative">
                           <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input
                             id="signup-email"
                             type="email"
-                            placeholder="farmer@example.com"
+                            placeholder={t("email.placeholder")}
                             className="pl-10"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -368,11 +384,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="farm-size">Farm Size (acres)</Label>
+                        <Label htmlFor="farm-size">{t("farmSize.label")}</Label>
                         <Input
                           id="farm-size"
                           type="number"
-                          placeholder="100"
+                          placeholder={t("farmSize.placeholder")}
                           value={farmSize}
                           onChange={(e) => setFarmSize(e.target.value)}
                           disabled={isLoading}
@@ -388,11 +404,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                         {isLoading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Sending OTP...
+                            {t("sending.otp")}
                           </>
                         ) : (
                           <>
-                            Send Verification Code
+                            {t("send.verification")}
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </>
                         )}
@@ -401,13 +417,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   ) : (
                     <>
                       <div className="space-y-2">
-                        <Label htmlFor="signup-otp">Verification Code</Label>
+                        <Label htmlFor="signup-otp">{t("otp.label")}</Label>
                         <div className="relative">
                           <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                           <Input
                             id="signup-otp"
                             type="text"
-                            placeholder="Enter OTP"
+                            placeholder={t("otp.placeholder")}
                             className="pl-10"
                             value={otp}
                             onChange={(e) => setOtp(e.target.value)}
@@ -416,7 +432,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
-                            OTP expires in: {formatTime(otpExpiresIn)}
+                            {t("otp.expires")} {formatTime(otpExpiresIn)}
                           </span>
                           <Button
                             variant="link"
@@ -424,7 +440,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                             onClick={handleRegister}
                             disabled={isLoading}
                           >
-                            Resend OTP
+                            {t("otp.resend")}
                           </Button>
                         </div>
                       </div>
@@ -438,11 +454,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                         {isLoading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Verifying...
+                            {t("verifying")}
                           </>
                         ) : (
                           <>
-                            Complete Registration
+                            {t("complete.registration")}
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </>
                         )}
@@ -472,11 +488,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             className="text-white text-center"
           >
             <h2 className="text-4xl mb-4 text-white">
-              Data-Driven Agriculture
+              {t("data.driven")}
             </h2>
             <p className="text-xl text-white/90 max-w-lg">
-              Make informed decisions with real-time analytics, weather predictions,
-              and AI-powered crop insights.
+              {t("data.description")}
             </p>
           </motion.div>
         </div>

@@ -459,6 +459,222 @@ io.on('connection', (socket) => {
   });
 });
 
+// Government Schemes endpoints
+const { spawn } = require('child_process');
+const path = require('path');
+
+// Get all government schemes with optional filtering
+app.get('/api/schemes', authenticateToken, async (req, res) => {
+  try {
+    const { region, ministry, state } = req.query;
+    
+    // Use Python script to fetch schemes from database
+    const pythonScript = path.join(__dirname, 'gov_schemes_fetcher.py');
+    const args = ['get_schemes', '--region', region || '', '--ministry', ministry || '', '--state', state || ''];
+    
+    const pythonProcess = spawn('python', [pythonScript, ...args]);
+    let data = '';
+    let error = '';
+    
+    pythonProcess.stdout.on('data', (chunk) => {
+      data += chunk.toString();
+    });
+    
+    pythonProcess.stderr.on('data', (chunk) => {
+      error += chunk.toString();
+    });
+    
+    pythonProcess.on('close', (code) => {
+      if (code === 0) {
+        try {
+          const schemes = JSON.parse(data);
+          res.json({
+            success: true,
+            data: schemes,
+            total: schemes.length
+          });
+        } catch (parseError) {
+          console.error('Error parsing schemes data:', parseError);
+          res.status(500).json({ error: 'Failed to parse schemes data' });
+        }
+      } else {
+        console.error('Python script error:', error);
+        res.status(500).json({ error: 'Failed to fetch schemes data' });
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching schemes:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get scheme by ID
+app.get('/api/schemes/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const pythonScript = path.join(__dirname, 'gov_schemes_fetcher.py');
+    const args = ['get_scheme', '--id', id];
+    
+    const pythonProcess = spawn('python', [pythonScript, ...args]);
+    let data = '';
+    let error = '';
+    
+    pythonProcess.stdout.on('data', (chunk) => {
+      data += chunk.toString();
+    });
+    
+    pythonProcess.stderr.on('data', (chunk) => {
+      error += chunk.toString();
+    });
+    
+    pythonProcess.on('close', (code) => {
+      if (code === 0) {
+        try {
+          const scheme = JSON.parse(data);
+          res.json({
+            success: true,
+            data: scheme
+          });
+        } catch (parseError) {
+          console.error('Error parsing scheme data:', parseError);
+          res.status(500).json({ error: 'Failed to parse scheme data' });
+        }
+      } else {
+        console.error('Python script error:', error);
+        res.status(500).json({ error: 'Failed to fetch scheme data' });
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching scheme:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get scheme statistics
+app.get('/api/schemes/stats', authenticateToken, async (req, res) => {
+  try {
+    const pythonScript = path.join(__dirname, 'gov_schemes_fetcher.py');
+    const args = ['get_stats'];
+    
+    const pythonProcess = spawn('python', [pythonScript, ...args]);
+    let data = '';
+    let error = '';
+    
+    pythonProcess.stdout.on('data', (chunk) => {
+      data += chunk.toString();
+    });
+    
+    pythonProcess.stderr.on('data', (chunk) => {
+      error += chunk.toString();
+    });
+    
+    pythonProcess.on('close', (code) => {
+      if (code === 0) {
+        try {
+          const stats = JSON.parse(data);
+          res.json({
+            success: true,
+            data: stats
+          });
+        } catch (parseError) {
+          console.error('Error parsing stats data:', parseError);
+          res.status(500).json({ error: 'Failed to parse stats data' });
+        }
+      } else {
+        console.error('Python script error:', error);
+        res.status(500).json({ error: 'Failed to fetch stats data' });
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get available states for filtering
+app.get('/api/schemes/states', authenticateToken, async (req, res) => {
+  try {
+    const pythonScript = path.join(__dirname, 'gov_schemes_fetcher.py');
+    const args = ['get_states'];
+    
+    const pythonProcess = spawn('python', [pythonScript, ...args]);
+    let data = '';
+    let error = '';
+    
+    pythonProcess.stdout.on('data', (chunk) => {
+      data += chunk.toString();
+    });
+    
+    pythonProcess.stderr.on('data', (chunk) => {
+      error += chunk.toString();
+    });
+    
+    pythonProcess.on('close', (code) => {
+      if (code === 0) {
+        try {
+          const states = JSON.parse(data);
+          res.json({
+            success: true,
+            data: states
+          });
+        } catch (parseError) {
+          console.error('Error parsing states data:', parseError);
+          res.status(500).json({ error: 'Failed to parse states data' });
+        }
+      } else {
+        console.error('Python script error:', error);
+        res.status(500).json({ error: 'Failed to fetch states data' });
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching states:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Trigger manual schemes fetch (admin only)
+app.post('/api/schemes/fetch', authenticateToken, async (req, res) => {
+  try {
+    const pythonScript = path.join(__dirname, 'gov_schemes_fetcher.py');
+    const args = ['fetch_schemes'];
+    
+    const pythonProcess = spawn('python', [pythonScript, ...args]);
+    let data = '';
+    let error = '';
+    
+    pythonProcess.stdout.on('data', (chunk) => {
+      data += chunk.toString();
+    });
+    
+    pythonProcess.stderr.on('data', (chunk) => {
+      error += chunk.toString();
+    });
+    
+    pythonProcess.on('close', (code) => {
+      if (code === 0) {
+        try {
+          const result = JSON.parse(data);
+          res.json({
+            success: true,
+            message: 'Schemes fetch completed',
+            data: result
+          });
+        } catch (parseError) {
+          console.error('Error parsing fetch result:', parseError);
+          res.status(500).json({ error: 'Failed to parse fetch result' });
+        }
+      } else {
+        console.error('Python script error:', error);
+        res.status(500).json({ error: 'Failed to fetch schemes' });
+      }
+    });
+  } catch (error) {
+    console.error('Error triggering schemes fetch:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });

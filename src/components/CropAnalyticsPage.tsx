@@ -2,6 +2,8 @@ import { motion } from "motion/react";
 import { Plus, TrendingUp, BarChart3, PieChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Button } from "./ui/button";
+import { CropAdvisorySystem } from "./CropAdvisorySystem";
+import { useLanguage } from "../contexts/LanguageContext";
 import {
   LineChart,
   Line,
@@ -43,14 +45,16 @@ const diseaseData = [
 ];
 
 export function CropAnalyticsPage() {
+  const { t } = useLanguage();
+  
   return (
     <div className="flex-1 overflow-auto">
       <div className="p-8 max-w-[1600px] mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="mb-2">Crop Analytics</h1>
+            <h1 className="mb-2">{t('sidebar.crop')}</h1>
             <p className="text-muted-foreground">
-              Comprehensive crop performance and health monitoring
+              {t('advisory.subtitle')}
             </p>
           </div>
           <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
@@ -58,6 +62,11 @@ export function CropAnalyticsPage() {
             Add Sensor Data
           </Button>
         </div>
+
+        {/* Crop Advisory System */}
+        {/* <div className="mb-8">
+          <CropAdvisorySystem />
+        </div> */}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

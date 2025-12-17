@@ -28,20 +28,20 @@ export function DataCard({ title, value, unit, icon: Icon, trend, color = "prima
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
     >
       <Card className="shadow-sm hover:shadow-md transition-shadow">
-        <CardContent className="p-6">
+        <CardContent className="p-3 sm:p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-muted-foreground text-sm mb-2">{title}</p>
+              <p className="text-muted-foreground text-xs sm:text-sm mb-1 sm:mb-2">{title}</p>
               <div className="flex items-baseline gap-1">
-                <h3 className="text-3xl">{value}</h3>
-                {unit && <span className="text-muted-foreground">{unit}</span>}
+                <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold">{value}</h3>
+                {unit && <span className="text-muted-foreground text-sm sm:text-base">{unit}</span>}
               </div>
               {trend && (
-                <p className="text-sm text-muted-foreground mt-2">{trend}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2 line-clamp-2">{trend}</p>
               )}
             </div>
-            <div className={`p-3 rounded-xl ${colorClasses[color as keyof typeof colorClasses] || colorClasses.primary}`}>
-              <Icon className="h-6 w-6" />
+            <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl ${colorClasses[color as keyof typeof colorClasses] || colorClasses.primary}`}>
+              <Icon className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
             </div>
           </div>
         </CardContent>
