@@ -240,87 +240,6 @@ app.post('/api/auth/verify-registration', async (req, res) => {
 
     console.log('Verifying registration OTP for:', normalizedEmail, 'with OTP:', normalizedOtp);
 
-<<<<<<< HEAD
-    // Find valid registration OTP
-    db.get(`
-      SELECT * FROM registration_otps 
-      WHERE email = ? AND otp = ? AND julianday(expires_at) > julianday('now') AND used = 0
-      ORDER BY created_at DESC
-      LIMIT 1
-    `, [normalizedEmail, normalizedOtp], (err, row) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-      }
-
-      console.log('Found registration OTP row:', row);
-
-      if (!row) {
-        console.log('No valid OTP found for email:', normalizedEmail);
-        return res.status(400).json({ error: 'Invalid or expired OTP. Please request a new OTP.' });
-      }
-
-      // Mark OTP as used
-      db.run('UPDATE registration_otps SET used = 1 WHERE id = ?', [row.id], (err) => {
-        if (err) {
-          console.error('Error marking OTP as used:', err);
-        }
-      });
-
-      // Check if user already exists (double check)
-      db.get('SELECT * FROM users WHERE email = ?', [normalizedEmail], async (err, existingUser) => {
-        if (err) {
-          console.error('Database error:', err);
-          return res.status(500).json({ error: 'Database error' });
-        }
-
-        if (existingUser) {
-          console.log('User already exists:', existingUser);
-          return res.status(400).json({ error: 'An account with this email already exists.' });
-        }
-
-        // Create new user
-        const stmt = db.prepare(`
-          INSERT INTO users (email, name, farm_size)
-          VALUES (?, ?, ?)
-        `);
-        stmt.run(normalizedEmail, row.name, row.farm_size, function(err) {
-          if (err) {
-            console.error('Error creating user:', err);
-            return res.status(500).json({ error: 'Failed to create user account' });
-          }
-          
-          const newUserId = this.lastID; // Get the ID of the newly created user
-          stmt.finalize();
-
-          // Send welcome email
-          emailService.sendWelcomeEmail(normalizedEmail, row.name).catch(emailError => {
-            console.log('Welcome email not sent:', emailError.message);
-          });
-
-          // Generate JWT token for immediate login using the new user ID
-          const token = jwt.sign(
-            { email: normalizedEmail, userId: newUserId },
-            config.jwt.secret,
-            { expiresIn: config.jwt.expiresIn }
-          );
-
-          console.log('User created successfully:', email);
-          res.json({
-            success: true,
-            message: 'Account created successfully!',
-            data: {
-              token,
-              user: {
-                email: normalizedEmail,
-                name: row.name,
-                farmSize: row.farm_size
-              }
-            }
-          });
-        });
-      });
-=======
     const regOtp = await RegistrationOtp.findOne({
       email: normalizedEmail,
       otp: normalizedOtp,
@@ -709,14 +628,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-<<<<<<< HEAD
-// Start server
-const PORT = config.port;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/api/health`);
-});
-=======
 // Start server after DB connection
 const PORT = config.port;
 initDatabase()
@@ -730,4 +641,3 @@ initDatabase()
     console.error('Failed to initialize database:', err);
     process.exit(1);
   });
->>>>>>> 08b5de3 (Prepare AgriGo for Railway deployment (MongoDB, dependency fixes, environment configs))
