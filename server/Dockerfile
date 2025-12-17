@@ -8,15 +8,15 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 # Install backend deps
-COPY server/package*.json ./
+COPY package*.json ./
 RUN npm install --only=production
 
 # Install Python deps used by gov_schemes_fetcher.py
-COPY server/requirements.txt ./requirements.txt
+COPY requirements.txt ./requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy source
-COPY server/. .
+COPY . .
 
 ENV NODE_ENV=production
 ENV PORT=5000

@@ -1,33 +1,42 @@
 const nodemailer = require('nodemailer');
+const axios = require('axios');
 const config = require('./config');
 
 class EmailService {
   constructor() {
-    console.log('SMTP Config:', {
-      host: config.smtp.host,
-      port: config.smtp.port,
-      user: config.smtp.auth.user,
-      pass: config.smtp.auth.pass ? '***hidden***' : 'NOT SET'
-    });
-    
-    this.transporter = nodemailer.createTransport({
-      host: config.smtp.host,
-      port: config.smtp.port,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: config.smtp.auth.user,
-        pass: config.smtp.auth.pass
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
+    this.useEmailJS = config.emailProvider === 'emailjs';
 
-    // Verify transporter configuration
-    this.verifyConnection();
+    if (this.useEmailJS) {
+      console.log('EmailJS mode enabled:', {
+        serviceId: config.emailjs.serviceId,
+        templateId: config.emailjs.templateId,
+        publicKey: config.emailjs.publicKey ? '***' : undefined
+      });
+    } else {
+      console.log('SMTP Config:', {
+        host: config.smtp.host,
+        port: config.smtp.port,
+        user: config.smtp.auth.user,
+        pass: config.smtp.auth.pass ? '***hidden***' : 'NOT SET'
+      });
+
+      this.transporter = nodemailer.createTransport({
+        host: config.smtp.host,
+        port: config.smtp.port,
+        secure: config.smtp.secure,
+        auth: {
+          user: config.smtp.auth.user,
+          pass: config.smtp.auth.pass
+        },
+        tls: { rejectUnauthorized: false }
+      });
+
+      this.verifyConnection();
+    }
   }
 
   async verifyConnection() {
+    if (!this.transporter) return;
     try {
       await this.transporter.verify();
       console.log('✅ SMTP Server is ready to send emails');
@@ -40,12 +49,52 @@ class EmailService {
     }
   }
 
+  async sendWithEmailJS(templateParams, subject) {
+    const { publicKey, serviceId, templateId, fromName } = config.emailjs;
+    if (!publicKey || !serviceId || !templateId) {
+      return { success: false, error: 'EmailJS configuration is missing' };
+    }
+    try {
+      const payload = {
+        service_id: serviceId,
+        template_id: templateId,
+        user_id: publicKey,
+        template_params: {
+          from_name: fromName || 'AgroAnalytics',
+          subject,
+          ...templateParams
+        }
+      };
+
+      await axios.post('https://api.emailjs.com/api/v1.0/email/send', payload, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      return { success: true, messageId: 'emailjs' };
+    } catch (error) {
+      console.error('EmailJS send error:', error.response?.data || error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
   async sendOTP(email, otp) {
+    const subject = 'Your OTP for AgroAnalytics Login';
+    if (this.useEmailJS) {
+      return this.sendWithEmailJS(
+        {
+          to_email: email,
+          otp,
+          message: 'Use this code to complete your login. It expires in 10 minutes.'
+        },
+        subject
+      );
+    }
+
     try {
       const mailOptions = {
         from: `"AgroAnalytics" <${config.smtp.auth.user}>`,
         to: email,
-        subject: 'Your OTP for AgroAnalytics Login',
+        subject,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 20px; text-align: center;">
@@ -90,11 +139,24 @@ class EmailService {
   }
 
   async sendRegistrationOTP(email, name, otp) {
+    const subject = 'Verify Your Email - AgroAnalytics Account';
+    if (this.useEmailJS) {
+      return this.sendWithEmailJS(
+        {
+          to_email: email,
+          name,
+          otp,
+          message: 'Use this code to verify your email. It expires in 10 minutes.'
+        },
+        subject
+      );
+    }
+
     try {
       const mailOptions = {
         from: `"AgroAnalytics" <${config.smtp.auth.user}>`,
         to: email,
-        subject: 'Verify Your Email - AgroAnalytics Account',
+        subject,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 20px; text-align: center;">
@@ -139,11 +201,23 @@ class EmailService {
   }
 
   async sendWelcomeEmail(email, name) {
+    const subject = 'Welcome to AgroAnalytics!';
+    if (this.useEmailJS) {
+      return this.sendWithEmailJS(
+        {
+          to_email: email,
+          name,
+          message: `Welcome ${name}!`,
+        },
+        subject
+      );
+    }
+
     try {
       const mailOptions = {
         from: `"AgroAnalytics" <${config.smtp.auth.user}>`,
         to: email,
-        subject: 'Welcome to AgroAnalytics!',
+        subject,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 20px; text-align: center;">
