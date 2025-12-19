@@ -7,6 +7,7 @@ A comprehensive, production-ready web application for agricultural data analysis
 ### **Prerequisites**
 - Node.js v14+ installed
 - npm installed (comes with Node.js)
+- MongoDB connection string (from MongoDB Atlas or local)
 
 ### **Step 1: Install Frontend Dependencies**
 ```bash
@@ -20,13 +21,28 @@ npm install
 cd ..
 ```
 
-### **Step 3: Configure Backend (Optional - for Email OTP)**
-Edit `server/config.env`:
+### **Step 3: Configure Backend**
+Edit `server/config.env` and add:
+
+**MongoDB Configuration (Required):**
+```env
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
+```
+
+**Email Configuration (Optional - for OTP):**
 ```env
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
+```
+
+**Other Settings:**
+```env
+PORT=5000
+NODE_ENV=development
+OPENWEATHER_API_KEY=2170cf9f72b3eee31fdac25765223afd
+JWT_SECRET=your-super-secret-jwt-key-for-agroanalytics-2024
 ```
 
 ### **Step 4: Start Backend Server (Open Terminal 1)**
@@ -37,6 +53,7 @@ node server.js
 **Expected Output:**
 ```
 Config loaded: {...}
+MongoDB connected
 Database initialized successfully
 Server running on port 5000
 ```

@@ -3,6 +3,9 @@
 ## Prerequisites
 - Node.js v14 or higher
 - npm (comes with Node.js)
+- **MongoDB Connection String** (Required)
+  - Free: [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+  - Local: `mongodb://localhost:27017/agrianalytics`
 
 ## Step-by-Step Setup
 
@@ -18,7 +21,20 @@ npm install
 cd ..
 ```
 
-### Step 3: Configure Backend (Optional - for Email OTP)
+### Step 3: Configure MongoDB Connection
+Edit `server/config.env` and add your MongoDB URI:
+
+**For MongoDB Atlas (Cloud):**
+```env
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/agrianalytics?retryWrites=true&w=majority
+```
+
+**For Local MongoDB:**
+```env
+MONGO_URI=mongodb://localhost:27017/agrianalytics
+```
+
+### Step 4: Configure Email (Optional - for OTP)
 Edit `server/config.env` to add email credentials:
 ```env
 SMTP_HOST=smtp.gmail.com
@@ -27,7 +43,16 @@ SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 ```
 
-### Step 4: Start Backend Server
+### Step 5: Configure Other Settings (Optional)
+```env
+PORT=5000
+NODE_ENV=development
+OPENWEATHER_API_KEY=2170cf9f72b3eee31fdac25765223afd
+JWT_SECRET=your-super-secret-jwt-key
+CLIENT_ORIGIN=http://localhost:3000
+```
+
+### Step 6: Start Backend Server
 Open **Terminal 1** and run:
 ```bash
 cd server
@@ -37,11 +62,12 @@ node server.js
 **You should see:**
 ```
 Config loaded: {...}
+MongoDB connected
 Database initialized successfully
 Server running on port 5000
 ```
 
-### Step 5: Start Frontend Server
+### Step 7: Start Frontend Server
 Open **Terminal 2** (from project root) and run:
 ```bash
 npm run dev
@@ -53,22 +79,44 @@ VITE v... ready in ... ms
 ➜  Local:   http://localhost:3000/
 ```
 
-### Step 6: Open Application
+### Step 8: Open Application
 Open your browser and go to: `http://localhost:3000`
 
 ## Access Points
 - **Frontend:** http://localhost:3000
 - **Backend API:** http://localhost:5000
+- **Database:** MongoDB (configured in MONGO_URI)
+
+## Database Information
+- **Type:** MongoDB
+- **ODM:** Mongoose
+- **Collections:**
+  - Users (user accounts and profiles)
+  - OTPs (login verification codes)
+  - Registration OTPs (signup verification codes)
+  - Schemes (government schemes)
+  - Weather Data (historical weather information)
 
 ## Stop the Servers
 Press `Ctrl + C` in each terminal to stop the servers
 
 ## Troubleshooting
 
-**Error: Cannot find module 'axios'**
+**Error: MONGO_URI is required**
+```
+❌ MONGO_URI is not set in server/config.env
+✅ Add your MongoDB connection string to server/config.env
+```
+
+**Error: Cannot connect to MongoDB**
+- Verify MONGO_URI is correct
+- Check internet connection (for MongoDB Atlas)
+- Ensure MongoDB server is running (for local MongoDB)
+
+**Error: Cannot find module 'mongoose'**
 ```bash
 cd server
-npm install axios
+npm install mongoose
 ```
 
 **Port 5000 already in use?**
@@ -91,6 +139,18 @@ npm install
 cd server
 npm install
 ```
+
+## MongoDB Atlas Setup (Free)
+
+1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Create a free account
+3. Create a new project
+4. Create a cluster (free tier)
+5. Create a database user with a password
+6. Add your IP to network access (0.0.0.0/0 for development)
+7. Copy the connection string
+8. Replace `<password>` and `<username>` in the string
+9. Paste into `server/config.env` as `MONGO_URI`
 
 ## 🔧 Features Implemented
 
