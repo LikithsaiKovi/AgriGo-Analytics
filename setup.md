@@ -1,49 +1,57 @@
-# Smart Farming Analytics - Setup Guide
+# 🚀 SETUP & RUN
 
-## 🚀 Quick Start
+## Step 1: Setup Configuration
+```bash
+setup-local.bat
+```
 
-### 1. Frontend (Already Running)
-The frontend is already running on `http://localhost:3000`
+## Step 2: Start the Application
+```bash
+start-everything.bat
+```
 
-### 2. Backend Setup
+## Step 3: Open in Browser
+```
+http://localhost:3000
+```
 
-#### Option A: Using the provided server
-1. Navigate to the server directory:
-   ```bash
-   cd server
-   ```
+## Done! 🌾
 
-2. Install dependencies (if not already done):
-   ```bash
-   npm install
-   ```
+Your application is now running:
+- Frontend: http://localhost:3000
+- Backend: http://localhost:5000
 
-3. Start the server:
-   ```bash
-   npm start
-   ```
-   The server will run on `http://localhost:5000`
+## Optional: Configure Email
 
-#### Option B: Manual Environment Setup
-If you need to configure email settings, create a `.env` file in the server directory:
+Edit `server/config.env` to add your Gmail credentials for OTP email verification:
 
 ```env
-# Email Configuration (Update with your SMTP settings)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
-
-# OpenWeather API
-OPENWEATHER_API_KEY=2170cf9f72b3eee31fdac25765223afd
-
-# JWT Secret
-JWT_SECRET=your-super-secret-jwt-key-for-agroanalytics-2024
-
-# Server Configuration
-PORT=5000
-NODE_ENV=development
 ```
+
+## Troubleshooting
+
+**Port already in use?**
+```powershell
+netstat -ano | findstr :5000
+taskkill /PID <PID> /F
+```
+
+**Dependencies not installed?**
+```bash
+npm cache clean --force
+npm install
+cd server
+npm install
+```
+
+**Email not working?**
+- Use Gmail App Password (not regular password)
+- Enable 2-Factor Authentication on Gmail account
+- Check firewall not blocking port 587
 
 ## 🔧 Features Implemented
 
