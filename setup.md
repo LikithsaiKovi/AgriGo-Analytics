@@ -6,19 +6,19 @@
 
 ## Step-by-Step Setup
 
-### 1. Install Frontend Dependencies
+### Step 1: Install Frontend Dependencies
 ```bash
 npm install
 ```
 
-### 2. Install Backend Dependencies
+### Step 2: Install Backend Dependencies
 ```bash
 cd server
 npm install
 cd ..
 ```
 
-### 3. Configure (Optional)
+### Step 3: Configure Backend (Optional - for Email OTP)
 Edit `server/config.env` to add email credentials:
 ```env
 SMTP_HOST=smtp.gmail.com
@@ -27,21 +27,34 @@ SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 ```
 
-### 4. Start Backend Server
-Open Terminal 1 and run:
+### Step 4: Start Backend Server
+Open **Terminal 1** and run:
 ```bash
 cd server
 node server.js
 ```
 
-### 5. Start Frontend Server
-Open Terminal 2 (from project root) and run:
+**You should see:**
+```
+Config loaded: {...}
+Database initialized successfully
+Server running on port 5000
+```
+
+### Step 5: Start Frontend Server
+Open **Terminal 2** (from project root) and run:
 ```bash
 npm run dev
 ```
 
-### 6. Open Application
-Open browser: `http://localhost:3000`
+**You should see:**
+```
+VITE v... ready in ... ms
+➜  Local:   http://localhost:3000/
+```
+
+### Step 6: Open Application
+Open your browser and go to: `http://localhost:3000`
 
 ## Access Points
 - **Frontend:** http://localhost:3000
@@ -49,6 +62,35 @@ Open browser: `http://localhost:3000`
 
 ## Stop the Servers
 Press `Ctrl + C` in each terminal to stop the servers
+
+## Troubleshooting
+
+**Error: Cannot find module 'axios'**
+```bash
+cd server
+npm install axios
+```
+
+**Port 5000 already in use?**
+```powershell
+netstat -ano | findstr :5000
+taskkill /PID <PID> /F
+```
+
+**Port 3000 already in use?**
+Change the port:
+```bash
+npm run dev -- --port 3001
+```
+
+**Dependencies not installing?**
+```bash
+npm cache clean --force
+rm -r node_modules
+npm install
+cd server
+npm install
+```
 
 ## 🔧 Features Implemented
 

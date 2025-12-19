@@ -20,23 +20,41 @@ npm install
 cd ..
 ```
 
-### **Step 3: Start Backend Server (Terminal 1)**
+### **Step 3: Configure Backend (Optional - for Email OTP)**
+Edit `server/config.env`:
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+```
+
+### **Step 4: Start Backend Server (Open Terminal 1)**
 ```bash
 cd server
 node server.js
 ```
-Backend will run on `http://localhost:5000`
+**Expected Output:**
+```
+Config loaded: {...}
+Database initialized successfully
+Server running on port 5000
+```
 
-### **Step 4: Start Frontend Server (Terminal 2)**
+### **Step 5: Start Frontend Server (Open Terminal 2)**
+From project root:
 ```bash
 npm run dev
 ```
-Frontend will run on `http://localhost:3000`
+**Expected Output:**
+```
+VITE v... ready in ... ms
 
-### **Step 5: Open in Browser**
+➜  Local:   http://localhost:3000/
 ```
-http://localhost:3000
-```
+
+### **Step 6: Open Application**
+Open browser: `http://localhost:3000`
 
 ## 🌟 Features
 
