@@ -2,22 +2,41 @@
 
 A comprehensive, production-ready web application for agricultural data analysis and monitoring with real-time weather integration, OTP authentication, and responsive design.
 
-## 🚀 Quick Start
+## 🚀 Setup - Manual Steps
 
-### **Step 1: Setup Configuration**
+### **Prerequisites**
+- Node.js v14+ installed
+- npm installed (comes with Node.js)
+
+### **Step 1: Install Frontend Dependencies**
 ```bash
-setup-local.bat
+npm install
 ```
 
-### **Step 2: Start the Application**
+### **Step 2: Install Backend Dependencies**
 ```bash
-start-everything.bat
+cd server
+npm install
+cd ..
 ```
 
-### **Step 3: Access the Application**
-Open your browser and go to:
-- **Frontend**: `http://localhost:3000`
-- **Backend API**: `http://localhost:5000`
+### **Step 3: Start Backend Server (Terminal 1)**
+```bash
+cd server
+node server.js
+```
+Backend will run on `http://localhost:5000`
+
+### **Step 4: Start Frontend Server (Terminal 2)**
+```bash
+npm run dev
+```
+Frontend will run on `http://localhost:3000`
+
+### **Step 5: Open in Browser**
+```
+http://localhost:3000
+```
 
 ## 🌟 Features
 

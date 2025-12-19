@@ -1,30 +1,25 @@
-# 🚀 SETUP & RUN
+# 🚀 Setup Instructions - Manual
 
-## Step 1: Setup Configuration
+## Prerequisites
+- Node.js v14 or higher
+- npm (comes with Node.js)
+
+## Step-by-Step Setup
+
+### 1. Install Frontend Dependencies
 ```bash
-setup-local.bat
+npm install
 ```
 
-## Step 2: Start the Application
+### 2. Install Backend Dependencies
 ```bash
-start-everything.bat
+cd server
+npm install
+cd ..
 ```
 
-## Step 3: Open in Browser
-```
-http://localhost:3000
-```
-
-## Done! 🌾
-
-Your application is now running:
-- Frontend: http://localhost:3000
-- Backend: http://localhost:5000
-
-## Optional: Configure Email
-
-Edit `server/config.env` to add your Gmail credentials for OTP email verification:
-
+### 3. Configure (Optional)
+Edit `server/config.env` to add email credentials:
 ```env
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
@@ -32,26 +27,28 @@ SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 ```
 
-## Troubleshooting
-
-**Port already in use?**
-```powershell
-netstat -ano | findstr :5000
-taskkill /PID <PID> /F
-```
-
-**Dependencies not installed?**
+### 4. Start Backend Server
+Open Terminal 1 and run:
 ```bash
-npm cache clean --force
-npm install
 cd server
-npm install
+node server.js
 ```
 
-**Email not working?**
-- Use Gmail App Password (not regular password)
-- Enable 2-Factor Authentication on Gmail account
-- Check firewall not blocking port 587
+### 5. Start Frontend Server
+Open Terminal 2 (from project root) and run:
+```bash
+npm run dev
+```
+
+### 6. Open Application
+Open browser: `http://localhost:3000`
+
+## Access Points
+- **Frontend:** http://localhost:3000
+- **Backend API:** http://localhost:5000
+
+## Stop the Servers
+Press `Ctrl + C` in each terminal to stop the servers
 
 ## 🔧 Features Implemented
 
