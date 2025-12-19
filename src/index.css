@@ -138,7 +138,7 @@
 .animated-cloud {
   position: absolute;
   pointer-events: none;
-  z-index: 1000;
+  z-index: 10;
   will-change: transform;
 }
 @layer properties {

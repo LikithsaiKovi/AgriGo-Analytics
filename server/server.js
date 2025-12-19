@@ -7,7 +7,7 @@ const { Server } = require('socket.io');
 const axios = require('axios');
 const config = require('./config');
 const { initDatabase, models } = require('./database');
-const { User, Otp, RegistrationOtp } = models;
+const { User, Otp, RegistrationOtp, SoilReading } = models;
 const EmailService = require('./emailService');
 const WeatherService = require('./weatherService');
 
@@ -296,6 +296,190 @@ app.post('/api/auth/verify-registration', async (req, res) => {
     });
   } catch (error) {
     console.error('Error verifying registration OTP:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Soil health endpoints
+const parsePeriodToDate = (period = '7d') => {
+  const match = String(period).match(/^(\d+)([dh])$/i);
+  if (!match) return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const amount = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  const ms = unit === 'h' ? amount * 60 * 60 * 1000 : amount * 24 * 60 * 60 * 1000;
+  return new Date(Date.now() - ms);
+};
+
+const allowedMetrics = new Set([
+  'moisturePct',
+  'tempC',
+  'humidityPct',
+  'ph',
+  'nitrogenPpm',
+  'phosphorusPpm',
+  'potassiumPpm',
+  'organicMatterPct',
+  'ecDs'
+]);
+
+const buildInsights = (reading) => {
+  const insights = [];
+  const r = reading.readings || {};
+
+  const add = (metric, severity, message) => insights.push({ metric, severity, message });
+
+  if (r.moisturePct !== undefined) {
+    if (r.moisturePct < 20) add('moisturePct', 'high', 'Soil is dry; schedule irrigation soon.');
+    else if (r.moisturePct > 45) add('moisturePct', 'medium', 'Soil moisture is high; watch for waterlogging.');
+    else add('moisturePct', 'low', 'Moisture is in the optimal band.');
+  }
+
+  if (r.ph !== undefined) {
+    if (r.ph < 6) add('ph', 'medium', 'Soil is acidic; consider liming to raise pH.');
+    else if (r.ph > 7.5) add('ph', 'medium', 'Soil is alkaline; apply sulfur/organic matter to lower pH.');
+    else add('ph', 'low', 'pH is suitable for most field crops.');
+  }
+
+  if (r.nitrogenPpm !== undefined) {
+    if (r.nitrogenPpm < 15) add('nitrogenPpm', 'medium', 'Nitrogen is low; plan a nitrogen top-dress.');
+    else add('nitrogenPpm', 'low', 'Nitrogen is within a healthy range.');
+  }
+
+  if (r.phosphorusPpm !== undefined) {
+    if (r.phosphorusPpm < 10) add('phosphorusPpm', 'medium', 'Phosphorus is low; consider P fertilizer placement.');
+    else add('phosphorusPpm', 'low', 'Phosphorus looks adequate.');
+  }
+
+  if (r.potassiumPpm !== undefined) {
+    if (r.potassiumPpm < 80) add('potassiumPpm', 'medium', 'Potassium is low; add K to strengthen stress tolerance.');
+    else add('potassiumPpm', 'low', 'Potassium is adequate.');
+  }
+
+  if (r.organicMatterPct !== undefined) {
+    if (r.organicMatterPct < 2) add('organicMatterPct', 'medium', 'Low organic matter; add compost or cover crops.');
+    else add('organicMatterPct', 'low', 'Organic matter level is healthy.');
+  }
+
+  if (r.ecDs !== undefined) {
+    if (r.ecDs > 2) add('ecDs', 'high', 'High salinity risk; flush salts and review irrigation water.');
+    else add('ecDs', 'low', 'Salinity is acceptable.');
+  }
+
+  return insights;
+};
+
+app.post('/api/soil/readings', async (req, res) => {
+  try {
+    const { fieldId, sensorId, crop, location, samplingFreq, readings } = req.body;
+
+    const normalizedFieldId = String(fieldId || 'default-field').trim();
+    const normalizedSensorId = String(sensorId || 'manual-entry').trim();
+
+    if (!readings) {
+      return res.status(400).json({ error: 'readings are required' });
+    }
+
+    const requiredReadings = ['moisturePct', 'tempC', 'humidityPct', 'ph'];
+    const missing = requiredReadings.filter(key => readings[key] === undefined || readings[key] === null);
+    if (missing.length) {
+      return res.status(400).json({ error: `Missing readings: ${missing.join(', ')}` });
+    }
+
+    const numericReadings = { ...readings };
+    Object.keys(numericReadings).forEach((key) => {
+      if (key === 'texture') return;
+      if (numericReadings[key] !== undefined && numericReadings[key] !== null) {
+        numericReadings[key] = Number(numericReadings[key]);
+      }
+    });
+
+    if (!numericReadings.timestamp) {
+      numericReadings.timestamp = new Date();
+    } else {
+      numericReadings.timestamp = new Date(numericReadings.timestamp);
+    }
+
+    const soilReading = await SoilReading.create({
+      fieldId: normalizedFieldId,
+      sensorId: normalizedSensorId,
+      crop,
+      location,
+      samplingFreq,
+      readings: numericReadings
+    });
+
+    res.json({ success: true, data: { id: soilReading._id } });
+  } catch (error) {
+    console.error('Error saving soil reading:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/soil/latest', async (req, res) => {
+  try {
+    const { fieldId } = req.query;
+    const targetField = String(fieldId || 'default-field').trim();
+
+    const latest = await SoilReading.findOne({ fieldId: targetField })
+      .sort({ 'readings.timestamp': -1, createdAt: -1 })
+      .lean();
+
+    if (!latest) {
+      return res.status(404).json({ error: 'No readings found for this field' });
+    }
+
+    res.json({ success: true, data: latest });
+  } catch (error) {
+    console.error('Error fetching latest soil reading:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/soil/trends', async (req, res) => {
+  try {
+    const { fieldId, metric = 'moisturePct', period = '7d' } = req.query;
+    const targetField = String(fieldId || 'default-field').trim();
+    if (!allowedMetrics.has(metric)) return res.status(400).json({ error: 'Invalid metric' });
+
+    const since = parsePeriodToDate(period);
+    const readings = await SoilReading.find({
+      fieldId: targetField,
+      'readings.timestamp': { $gte: since }
+    })
+      .sort({ 'readings.timestamp': 1 })
+      .lean();
+
+    const series = readings
+      .map((doc) => ({
+        timestamp: doc.readings?.timestamp,
+        value: doc.readings ? doc.readings[metric] : undefined
+      }))
+      .filter(point => point.timestamp !== undefined && point.value !== undefined);
+
+    res.json({ success: true, data: series });
+  } catch (error) {
+    console.error('Error fetching soil trends:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/soil/insights', async (req, res) => {
+  try {
+    const { fieldId } = req.query;
+    const targetField = String(fieldId || 'default-field').trim();
+
+    const latest = await SoilReading.findOne({ fieldId: targetField })
+      .sort({ 'readings.timestamp': -1, createdAt: -1 })
+      .lean();
+
+    if (!latest) {
+      return res.status(404).json({ error: 'No readings found for this field' });
+    }
+
+    const insights = buildInsights(latest);
+    res.json({ success: true, data: { insights, latest } });
+  } catch (error) {
+    console.error('Error building soil insights:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

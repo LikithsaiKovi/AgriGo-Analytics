@@ -805,7 +805,7 @@ export function WeatherMapPage() {
                       className="pl-7 text-xs h-8"
                     />
                   {suggestions.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-10 mt-1 max-h-24 overflow-y-auto">
+                      <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-30 mt-1 max-h-52 overflow-y-auto">
                         {suggestions.map((suggestion, index) => (
                           <div
                             key={index}

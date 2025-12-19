@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
+  DropdownMenuLabel,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -290,11 +291,19 @@ export function Navbar({ user, onLogout }: NavbarProps) {
                   <User className="h-3 w-3 sm:h-4 sm:w-4" />
                 </AvatarFallback>
               </Avatar>
-              <span className="hidden sm:inline text-sm">{user?.name || 'User'}</span>
+              <span className="hidden sm:inline text-sm">{user?.name || 'Farmer'}</span>
               <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel className="flex flex-col gap-1">
+              <span className="font-semibold text-sm">{user?.name || 'Farmer'}</span>
+              {user?.email && <span className="text-xs text-muted-foreground">{user.email}</span>}
+              {user?.farmSize !== undefined && (
+                <span className="text-xs text-muted-foreground">Farm size: {user.farmSize} acres</span>
+              )}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
             <DropdownMenuItem>{t("navbar.profile")}</DropdownMenuItem>
             <DropdownMenuItem>{t("navbar.farm")}</DropdownMenuItem>
             <DropdownMenuItem>{t("navbar.subscription")}</DropdownMenuItem>

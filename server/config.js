@@ -1,5 +1,5 @@
 // Load environment variables
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 const config = {
   // Email Configuration
@@ -24,7 +24,8 @@ const config = {
 
   // OpenWeather API
   openweather: {
-    apiKey: process.env.OPENWEATHER_API_KEY || '2170cf9f72b3eee31fdac25765223afd',
+    // Require a real key to avoid accidental default calls
+    apiKey: process.env.OPENWEATHER_API_KEY || '',
     baseUrl: 'https://api.openweathermap.org/data/2.5'
   },
 

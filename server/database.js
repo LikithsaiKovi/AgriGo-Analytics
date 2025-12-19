@@ -45,6 +45,34 @@ const registrationOtpSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+const soilReadingSchema = new mongoose.Schema(
+  {
+    fieldId: { type: String, required: true, index: true },
+    sensorId: { type: String, required: true, index: true },
+    crop: { type: String },
+    location: { type: String },
+    samplingFreq: { type: Number },
+    readings: {
+      moisturePct: { type: Number, required: true },
+      tempC: { type: Number, required: true },
+      humidityPct: { type: Number, required: true },
+      ph: { type: Number, required: true },
+      nitrogenPpm: { type: Number },
+      phosphorusPpm: { type: Number },
+      potassiumPpm: { type: Number },
+      organicMatterPct: { type: Number },
+      ecDs: { type: Number },
+      texture: {
+        sandPct: { type: Number },
+        siltPct: { type: Number },
+        clayPct: { type: Number }
+      },
+      timestamp: { type: Date, required: true }
+    }
+  },
+  { timestamps: true }
+);
+
 const schemeSchema = new mongoose.Schema(
   {
     schemeId: { type: String, unique: true, index: true },
@@ -74,11 +102,26 @@ const marketPriceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+const weatherDataSchema = new mongoose.Schema(
+  {
+    location: { type: String, required: true },
+    temperature: { type: Number, required: true },
+    humidity: { type: Number, required: true },
+    pressure: { type: Number, required: true },
+    wind_speed: { type: Number, required: true },
+    description: { type: String, required: true },
+    icon: { type: String, required: true }
+  },
+  { timestamps: true }
+);
+
 const User = mongoose.model('User', userSchema);
 const Otp = mongoose.model('Otp', otpSchema);
 const RegistrationOtp = mongoose.model('RegistrationOtp', registrationOtpSchema);
 const Scheme = mongoose.model('Scheme', schemeSchema);
 const MarketPrice = mongoose.model('MarketPrice', marketPriceSchema);
+const SoilReading = mongoose.model('SoilReading', soilReadingSchema);
+const WeatherData = mongoose.model('WeatherData', weatherDataSchema);
 
 module.exports = {
   initDatabase,
@@ -87,7 +130,9 @@ module.exports = {
     Otp,
     RegistrationOtp,
     Scheme,
-    MarketPrice
+    MarketPrice,
+    SoilReading,
+    WeatherData
   }
 };
 

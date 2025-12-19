@@ -1,9 +1,16 @@
+import { useState } from "react";
 import { motion } from "motion/react";
 import { Plus, TrendingUp, BarChart3, PieChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Textarea } from "./ui/textarea";
+import { toast } from "sonner";
 import { CropAdvisorySystem } from "./CropAdvisorySystem";
 import { useLanguage } from "../contexts/LanguageContext";
+import { apiService } from "../services/api";
 import {
   LineChart,
   Line,
@@ -46,6 +53,94 @@ const diseaseData = [
 
 export function CropAnalyticsPage() {
   const { t } = useLanguage();
+  const [isSensorDialogOpen, setIsSensorDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sensorForm, setSensorForm] = useState({
+    fieldId: "",
+    sensorId: "",
+    name: "",
+    type: "",
+    crop: "",
+    location: "",
+    soilMoisture: "",
+    temperature: "",
+    humidity: "",
+    ph: "",
+    nitrogen: "",
+    phosphorus: "",
+    potassium: "",
+    samplingFreq: "15",
+    notes: "",
+    organicMatter: "",
+    ec: "",
+    sandPct: "",
+    siltPct: "",
+    clayPct: "",
+  });
+
+  const handleSensorChange = (field: string, value: string) => {
+    setSensorForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSensorSubmit = async () => {
+    const required = [
+      "name",
+      "type",
+      "crop",
+      "location",
+      "soilMoisture",
+      "temperature",
+      "humidity",
+      "ph",
+    ];
+
+    const missing = required.filter((key) => !sensorForm[key as keyof typeof sensorForm]?.trim());
+
+    if (missing.length) {
+      toast.error("Please fill the highlighted fields for analytics insights.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await apiService.submitSoilReading({
+        fieldId: sensorForm.fieldId.trim() || "default-field",
+        sensorId: sensorForm.sensorId.trim() || "manual-entry",
+        crop: sensorForm.crop.trim(),
+        location: sensorForm.location.trim(),
+        samplingFreq: Number(sensorForm.samplingFreq) || undefined,
+        readings: {
+          moisturePct: Number(sensorForm.soilMoisture),
+          tempC: Number(sensorForm.temperature),
+          humidityPct: Number(sensorForm.humidity),
+          ph: Number(sensorForm.ph),
+          nitrogenPpm: sensorForm.nitrogen ? Number(sensorForm.nitrogen) : undefined,
+          phosphorusPpm: sensorForm.phosphorus ? Number(sensorForm.phosphorus) : undefined,
+          potassiumPpm: sensorForm.potassium ? Number(sensorForm.potassium) : undefined,
+          organicMatterPct: sensorForm.organicMatter ? Number(sensorForm.organicMatter) : undefined,
+          ecDs: sensorForm.ec ? Number(sensorForm.ec) : undefined,
+          texture: {
+            sandPct: sensorForm.sandPct ? Number(sensorForm.sandPct) : undefined,
+            siltPct: sensorForm.siltPct ? Number(sensorForm.siltPct) : undefined,
+            clayPct: sensorForm.clayPct ? Number(sensorForm.clayPct) : undefined,
+          },
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      if (!response.success) {
+        toast.error(response.error || "Unable to save sensor data.");
+        return;
+      }
+
+      toast.success("Sensor data captured. Analytics will refresh with the new readings.");
+      setIsSensorDialogOpen(false);
+    } catch (error) {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   return (
     <div className="flex-1 overflow-auto">
@@ -57,10 +152,215 @@ export function CropAnalyticsPage() {
               {t('advisory.subtitle')}
             </p>
           </div>
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Sensor Data
-          </Button>
+          <Dialog open={isSensorDialogOpen} onOpenChange={setIsSensorDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                className="bg-accent text-accent-foreground hover:bg-accent/90"
+                onClick={() => setIsSensorDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {t('crop.analytics.add.sensor')}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{t('crop.analytics.sensor.dialog.title')}</DialogTitle>
+                <DialogDescription>
+                  {t('crop.analytics.sensor.dialog.description')}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.field.id')}</Label>
+                  <Input
+                    placeholder={t('crop.analytics.field.id.placeholder')}
+                    value={sensorForm.fieldId}
+                    onChange={(e) => handleSensorChange("fieldId", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.sensor.id')}</Label>
+                  <Input
+                    placeholder={t('crop.analytics.sensor.id.placeholder')}
+                    value={sensorForm.sensorId}
+                    onChange={(e) => handleSensorChange("sensorId", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.sensor.name')}</Label>
+                  <Input
+                    placeholder={t('crop.analytics.sensor.name.placeholder')}
+                    value={sensorForm.name}
+                    onChange={(e) => handleSensorChange("name", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.sensor.type')}</Label>
+                  <Input
+                    placeholder={t('crop.analytics.sensor.type.placeholder')}
+                    value={sensorForm.type}
+                    onChange={(e) => handleSensorChange("type", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.crop.monitored')}</Label>
+                  <Input
+                    placeholder={t('crop.analytics.crop.monitored.placeholder')}
+                    value={sensorForm.crop}
+                    onChange={(e) => handleSensorChange("crop", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.field.location')}</Label>
+                  <Input
+                    placeholder={t('crop.analytics.field.location.placeholder')}
+                    value={sensorForm.location}
+                    onChange={(e) => handleSensorChange("location", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.soil.moisture')}</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 24"
+                    value={sensorForm.soilMoisture}
+                    onChange={(e) => handleSensorChange("soilMoisture", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.temperature')}</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 29"
+                    value={sensorForm.temperature}
+                    onChange={(e) => handleSensorChange("temperature", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.humidity')}</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 68"
+                    value={sensorForm.humidity}
+                    onChange={(e) => handleSensorChange("humidity", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.soil.ph')}</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g., 6.4"
+                    value={sensorForm.ph}
+                    onChange={(e) => handleSensorChange("ph", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.nitrogen')}</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 18"
+                    value={sensorForm.nitrogen}
+                    onChange={(e) => handleSensorChange("nitrogen", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.phosphorus')}</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 12"
+                    value={sensorForm.phosphorus}
+                    onChange={(e) => handleSensorChange("phosphorus", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.potassium')}</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 40"
+                    value={sensorForm.potassium}
+                    onChange={(e) => handleSensorChange("potassium", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.organic.matter')}</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 3.2"
+                    value={sensorForm.organicMatter}
+                    onChange={(e) => handleSensorChange("organicMatter", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.ec')}</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 1.4"
+                    value={sensorForm.ec}
+                    onChange={(e) => handleSensorChange("ec", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.sand')}</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 45"
+                    value={sensorForm.sandPct}
+                    onChange={(e) => handleSensorChange("sandPct", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.silt')}</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 30"
+                    value={sensorForm.siltPct}
+                    onChange={(e) => handleSensorChange("siltPct", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.clay')}</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 25"
+                    value={sensorForm.clayPct}
+                    onChange={(e) => handleSensorChange("clayPct", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('crop.analytics.sampling.frequency')}</Label>
+                  <Input
+                    type="number"
+                    min="5"
+                    step="5"
+                    value={sensorForm.samplingFreq}
+                    onChange={(e) => handleSensorChange("samplingFreq", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t('crop.analytics.notes')}</Label>
+                <Textarea
+                  placeholder={t('crop.analytics.notes.placeholder')}
+                  value={sensorForm.notes}
+                  onChange={(e) => handleSensorChange("notes", e.target.value)}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsSensorDialogOpen(false)}>
+                  {t('crop.analytics.cancel')}
+                </Button>
+                <Button onClick={handleSensorSubmit} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  {isSubmitting ? t('crop.analytics.saving') : t('crop.analytics.save')}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Crop Advisory System */}
@@ -335,6 +635,8 @@ export function CropAnalyticsPage() {
           <Button
             size="lg"
             className="rounded-full w-14 h-14 shadow-lg bg-accent text-accent-foreground hover:bg-accent/90"
+            onClick={() => setIsSensorDialogOpen(true)}
+            aria-label="Add Sensor Data"
           >
             <Plus className="h-6 w-6" />
           </Button>

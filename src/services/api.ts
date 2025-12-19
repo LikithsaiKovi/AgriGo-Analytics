@@ -124,6 +124,60 @@ class ApiService {
     });
   }
 
+  async verifyRegistration(email: string, otp: string): Promise<ApiResponse<{
+    token: string;
+    user: {
+      email: string;
+      name: string;
+      farmSize: number;
+    };
+  }>> {
+    return this.request('/auth/verify-registration', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+  }
+
+  // Soil health
+  async submitSoilReading(payload: {
+    fieldId: string;
+    sensorId: string;
+    crop?: string;
+    location?: string;
+    samplingFreq?: number;
+    readings: {
+      moisturePct: number;
+      tempC: number;
+      humidityPct: number;
+      ph: number;
+      nitrogenPpm?: number;
+      phosphorusPpm?: number;
+      potassiumPpm?: number;
+      organicMatterPct?: number;
+      ecDs?: number;
+      texture?: { sandPct?: number; siltPct?: number; clayPct?: number };
+      timestamp?: string | Date;
+    };
+  }): Promise<ApiResponse<{ id: string }>> {
+    return this.request('/soil/readings', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getSoilLatest(fieldId: string): Promise<ApiResponse<any>> {
+    return this.request(`/soil/latest?fieldId=${encodeURIComponent(fieldId)}`);
+  }
+
+  async getSoilTrends(fieldId: string, metric: string, period = '7d'): Promise<ApiResponse<Array<{ timestamp: string; value: number }>>> {
+    const params = new URLSearchParams({ fieldId, metric, period });
+    return this.request(`/soil/trends?${params.toString()}`);
+  }
+
+  async getSoilInsights(fieldId: string): Promise<ApiResponse<{ insights: Array<{ metric: string; severity: string; message: string }>; latest: any }>> {
+    return this.request(`/soil/insights?fieldId=${encodeURIComponent(fieldId)}`);
+  }
+
   // Weather methods
   async getCurrentWeather(lat: number, lon: number): Promise<ApiResponse<{
     location: string;

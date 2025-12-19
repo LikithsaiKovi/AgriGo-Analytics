@@ -1,6 +1,6 @@
 const axios = require('axios');
 const config = require('./config');
-const { db } = require('./database');
+const { models } = require('./database');
 
 class WeatherService {
   constructor() {
@@ -9,6 +9,9 @@ class WeatherService {
   }
 
   async getCurrentWeather(lat, lon) {
+    if (!this.apiKey) {
+      return { success: false, error: 'OpenWeather API key is missing. Set OPENWEATHER_API_KEY in server/config.env.' };
+    }
     try {
       const response = await axios.get(`${this.baseUrl}/weather`, {
         params: {
@@ -33,20 +36,20 @@ class WeatherService {
       // Store in database
       this.storeWeatherData(weatherData);
 
-      return {
-        success: true,
-        data: weatherData
-      };
+      return { success: true, data: weatherData };
     } catch (error) {
-      console.error('Error fetching weather data:', error);
-      return {
-        success: false,
-        error: error.message
-      };
+      console.error('Error fetching weather data:', error.message || error);
+      const friendly = error.response?.status === 401
+        ? 'OpenWeather rejected the API key (401). Update OPENWEATHER_API_KEY in server/config.env with a valid key.'
+        : error.message;
+      return { success: false, error: friendly };
     }
   }
 
   async getWeatherForecast(lat, lon) {
+    if (!this.apiKey) {
+      return { success: false, error: 'OpenWeather API key is missing. Set OPENWEATHER_API_KEY in server/config.env.' };
+    }
     try {
       const response = await axios.get(`${this.baseUrl}/forecast`, {
         params: {
@@ -71,11 +74,11 @@ class WeatherService {
         data: forecast
       };
     } catch (error) {
-      console.error('Error fetching weather forecast:', error);
-      return {
-        success: false,
-        error: error.message
-      };
+      console.error('Error fetching weather forecast:', error.message || error);
+      const friendly = error.response?.status === 401
+        ? 'OpenWeather rejected the API key (401). Update OPENWEATHER_API_KEY in server/config.env with a valid key.'
+        : error.message;
+      return { success: false, error: friendly };
     }
   }
 
@@ -105,40 +108,34 @@ class WeatherService {
     }
   }
 
-  storeWeatherData(weatherData) {
-    const stmt = db.prepare(`
-      INSERT INTO weather_data (location, temperature, humidity, pressure, wind_speed, description, icon)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      weatherData.location,
-      weatherData.temperature,
-      weatherData.humidity,
-      weatherData.pressure,
-      weatherData.windSpeed,
-      weatherData.description,
-      weatherData.icon
-    );
-
-    stmt.finalize();
+  async storeWeatherData(weatherData) {
+    try {
+      await models.WeatherData.create({
+        location: weatherData.location,
+        temperature: weatherData.temperature,
+        humidity: weatherData.humidity,
+        pressure: weatherData.pressure,
+        wind_speed: weatherData.windSpeed,
+        description: weatherData.description,
+        icon: weatherData.icon
+      });
+    } catch (error) {
+      console.error('Error storing weather data:', error.message);
+    }
   }
 
   async getHistoricalWeather(location, days = 7) {
-    return new Promise((resolve, reject) => {
-      db.all(`
-        SELECT * FROM weather_data 
-        WHERE location = ? 
-        ORDER BY created_at DESC 
-        LIMIT ?
-      `, [location, days], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
-      });
-    });
+    try {
+      const weatherRecords = await models.WeatherData
+        .find({ location })
+        .sort({ createdAt: -1 })
+        .limit(days)
+        .lean();
+      return weatherRecords;
+    } catch (error) {
+      console.error('Error fetching historical weather:', error.message);
+      throw error;
+    }
   }
 }
 
