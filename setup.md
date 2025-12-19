@@ -217,7 +217,8 @@ npm install
 - `weather-update` - Receive real-time weather data
 
 ### Database
-- SQLite database with tables for users, OTPs, weather data, and crop analytics
+- MongoDB with Mongoose ODM
+- Collections for users, OTPs, weather data, schemes, and analytics
 - Automatic database initialization on first run
 
 ## 🎨 UI/UX Features

@@ -2,16 +2,16 @@
 
 ## ✅ What's Been Implemented
 
-### 🐍 **Python Data Fetcher**
+### 🐍 **Python Data Fetcher** (Optional - for local data preparation)
 - **File**: `gov_schemes_fetcher.py`
 - **Purpose**: Fetches government schemes from OGD Platform India
 - **Features**: 
   - API integration with fallback to CSV
-  - SQLite database storage
+  - Local SQLite database for data processing only
   - Smart updates (only when data is newer)
   - Comprehensive error handling and logging
 
-### 📅 **Automated Scheduler**
+### 📅 **Automated Scheduler** (Optional - for local data updates)
 - **File**: `scheduler.py`
 - **Purpose**: Runs data fetcher periodically
 - **Options**:
@@ -21,10 +21,10 @@
   - Default: Run every 6 hours
 
 ### 🗄️ **Database Integration**
-- **Database**: `agriai.db` (SQLite)
-- **Table**: `gov_schemes`
-- **Schema**: Complete with indexes for performance
-- **Mock Data**: 15 sample schemes (10 Central, 5 State)
+- **Main Database**: MongoDB (configured in Node.js backend)
+- **Local Data Processing**: `agriai.db` (SQLite - for Python scripts only)
+- **MongoDB Collections**: `gov_schemes`, `users`, `otps`, `market_prices`, etc.
+- **Mock Data**: 15 sample schemes (10 Central, 5 State) loaded into MongoDB
 
 ### 🚀 **Node.js API Endpoints**
 - **GET** `/api/schemes` - Get all schemes (with filtering)
@@ -137,26 +137,30 @@ node test_api.js
 
 ## 🔄 Data Flow
 
-1. **Scheduler** triggers data fetch periodically
-2. **Python Fetcher** calls OGD Platform India API
-3. **Data** is parsed and stored in SQLite database
-4. **Node.js API** serves data to frontend
-5. **React Frontend** displays real-time government schemes
+1. **Scheduler** triggers data fetch periodically (optional)
+2. **Python Fetcher** calls OGD Platform India API (optional)
+3. **Data** is parsed and stored in local SQLite database (optional)
+4. **Node.js API** serves data from MongoDB to frontend
+5. **MongoDB** stores all application and schemes data
+6. **React Frontend** displays real-time government schemes from MongoDB
 
 ## 🛠️ Troubleshooting
 
 ### Common Issues
 
-1. **API Key Invalid**
+1. **MongoDB Connection Failed**
+   - Ensure MONGO_URI is set in `server/config.env`
+   - Check MongoDB Atlas cluster is running
+   - Verify network access allows your IP
+
+2. **API Key Invalid**
    - Update API key in `gov_schemes_fetcher.py`
    - Check API quota limits
 
-2. **Database Connection Failed**
-   - Ensure SQLite database is accessible
-   - Check file permissions
-
 3. **Python Dependencies Missing**
    - Run `pip install -r requirements.txt`
+
+**Note:** Python scripts are optional for local data fetching. All application data is stored in MongoDB.
 
 4. **Scheduler Not Running**
    - Check if schedule library is installed

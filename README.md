@@ -79,7 +79,7 @@ Open browser: `http://localhost:3000`
 - 🌤️ Real-Time Weather - Live data from OpenWeather API
 - 📊 Analytics Dashboard - Crop and soil health monitoring
 - 📱 Responsive Design - Mobile, tablet, and desktop
-- 💾 Local Database - SQLite with data persistence
+- 💾 Cloud Database - MongoDB with data persistence
 - ⚡ Real-Time Updates - WebSocket integration
 
 ## 🎯 Usage
@@ -121,7 +121,8 @@ NODE_ENV=development
 ## 🏗️ Architecture
 
 **Frontend**: React 18 + TypeScript + Tailwind CSS  
-**Backend**: Node.js + Express + SQLite  
+**Backend**: Node.js + Express + MongoDB  
+**Database**: MongoDB with Mongoose ODM  
 **Real-time**: WebSocket integration  
 **Authentication**: JWT + OTP verification  
 
