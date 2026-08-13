@@ -82,10 +82,72 @@ class EmailService {
       console.error('EmailJS send error:', error.response?.data || error.message);
       return { success: false, error: error.message };
     }
+  async sendWithResend(to, subject, html) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) return { success: false, error: 'RESEND_API_KEY is not set' };
+    try {
+      const response = await axios.post(
+        'https://api.resend.com/emails',
+        {
+          from: 'AgroAnalytics <onboarding@resend.dev>',
+          to: [to],
+          subject: subject,
+          html: html
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      console.log('✅ Real email delivered to inbox via Resend HTTP API:', response.data);
+      return { success: true, messageId: response.data.id };
+    } catch (err) {
+      console.error('❌ Resend API Error:', err.response?.data || err.message);
+      return { success: false, error: err.message };
+    }
   }
 
   async sendOTP(email, otp) {
     const subject = 'Your OTP for AgroAnalytics Login';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0;">AgroAnalytics</h1>
+          <p style="color: white; margin: 5px 0 0 0;">Smart Agriculture Platform</p>
+        </div>
+        
+        <div style="padding: 30px; background: #f9fafb;">
+          <h2 style="color: #1f2937; margin-bottom: 20px;">Your One-Time Password</h2>
+          
+          <p style="color: #6b7280; margin-bottom: 20px;">
+            Use the following code to complete your login to AgroAnalytics:
+          </p>
+          
+          <div style="background: white; border: 2px solid #10b981; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+            <h1 style="color: #10b981; font-size: 32px; letter-spacing: 5px; margin: 0; font-family: monospace;">
+              ${otp}
+            </h1>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px;">
+            This code will expire in 10 minutes. If you didn't request this code, please ignore this email.
+          </p>
+          
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+            <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+              © 2024 AgroAnalytics. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (process.env.RESEND_API_KEY) {
+      return this.sendWithResend(email, subject, html);
+    }
+
     if (this.useEmailJS) {
       return this.sendWithEmailJS(
         {
@@ -102,38 +164,7 @@ class EmailService {
         from: `"AgroAnalytics" <${config.smtp.auth.user}>`,
         to: email,
         subject,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 20px; text-align: center;">
-              <h1 style="color: white; margin: 0;">AgroAnalytics</h1>
-              <p style="color: white; margin: 5px 0 0 0;">Smart Agriculture Platform</p>
-            </div>
-            
-            <div style="padding: 30px; background: #f9fafb;">
-              <h2 style="color: #1f2937; margin-bottom: 20px;">Your One-Time Password</h2>
-              
-              <p style="color: #6b7280; margin-bottom: 20px;">
-                Use the following code to complete your login to AgroAnalytics:
-              </p>
-              
-              <div style="background: white; border: 2px solid #10b981; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-                <h1 style="color: #10b981; font-size: 32px; letter-spacing: 5px; margin: 0; font-family: monospace;">
-                  ${otp}
-                </h1>
-              </div>
-              
-              <p style="color: #6b7280; font-size: 14px;">
-                This code will expire in 10 minutes. If you didn't request this code, please ignore this email.
-              </p>
-              
-              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                  © 2024 AgroAnalytics. All rights reserved.
-                </p>
-              </div>
-            </div>
-          </div>
-        `
+        html
       };
 
       console.log(`📧 Attempting to send OTP email to ${email}... (Code: ${otp})`);
