@@ -298,7 +298,7 @@ class ApiService {
     return this.request('/financial/loans');
   }
 
-  async getGovernmentSchemes(): Promise<ApiResponse<Array<{
+  async getFinancialSchemes(): Promise<ApiResponse<Array<{
     id: string;
     name: string;
     description: string;
