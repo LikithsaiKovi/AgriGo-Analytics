@@ -821,7 +821,7 @@ initDatabase()
   .then(() => {
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      console.log(`Health check: http://localhost:${PORT}/api/health`);
+      console.log(`Health check endpoint: /api/health`);
     });
   })
   .catch(err => {
