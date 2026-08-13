@@ -13,14 +13,12 @@ const WeatherService = require('./weatherService');
 
 const app = express();
 const server = createServer(app);
-const allowedOrigins = config.clientOrigin
-  .split(',')
-  .map(origin => origin.trim())
-  .filter(Boolean);
-
 const corsOptions = {
-  origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
-  methods: ['GET', 'POST'],
+  origin: (origin, callback) => {
+    callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 };
 
