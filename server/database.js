@@ -1,17 +1,33 @@
 const mongoose = require('mongoose');
 
-const initDatabase = async () => {
+const initDatabase = async (retries = 5, delay = 5000) => {
   const mongoUri = process.env.MONGO_URI;
   if (!mongoUri) {
-    throw new Error('MONGO_URI is required to connect to MongoDB');
+    throw new Error('MONGO_URI environment variable is not set');
   }
 
   mongoose.set('strictQuery', false);
-  await mongoose.connect(mongoUri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  });
-  console.log('MongoDB connected');
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await mongoose.connect(mongoUri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000,
+      });
+      console.log('✅ MongoDB connected successfully');
+      return;
+    } catch (err) {
+      console.error(`❌ MongoDB connection attempt ${attempt}/${retries} failed:`, err.message);
+      if (attempt < retries) {
+        console.log(`⏳ Retrying in ${delay / 1000}s...`);
+        await new Promise(res => setTimeout(res, delay));
+      } else {
+        throw err;
+      }
+    }
+  }
 };
 
 const userSchema = new mongoose.Schema(
