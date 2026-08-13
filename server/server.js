@@ -125,10 +125,9 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       expiresAt: { $gt: new Date() }
     }).sort({ createdAt: -1 });
 
-    console.log('Found login OTP doc:', otpDoc);
-
     if (!otpDoc) {
-      console.log('No valid OTP found for email:', normalizedEmail);
+      const recentOtps = await Otp.find({ email: normalizedEmail }).sort({ createdAt: -1 }).limit(3);
+      console.log('No matching valid OTP found. Recent OTPs in DB for email:', recentOtps);
       return res.status(400).json({ error: 'Invalid or expired OTP. Please request a new OTP.' });
     }
 
@@ -141,9 +140,14 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired OTP. Please request a new OTP.' });
     }
 
-    const user = await User.findOne({ email: normalizedEmail });
+    let user = await User.findOne({ email: normalizedEmail });
     if (!user) {
-      return res.status(400).json({ error: 'User not found. Please register first.' });
+      console.log('Auto-creating user profile for first-time login:', normalizedEmail);
+      user = await User.create({
+        email: normalizedEmail,
+        name: normalizedEmail.split('@')[0],
+        farmSize: 10
+      });
     }
 
     const token = jwt.sign(
