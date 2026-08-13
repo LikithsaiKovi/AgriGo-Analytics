@@ -82,6 +82,8 @@ class EmailService {
       console.error('EmailJS send error:', error.response?.data || error.message);
       return { success: false, error: error.message };
     }
+  }
+
   async sendWithResend(to, subject, html) {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) return { success: false, error: 'RESEND_API_KEY is not set' };
