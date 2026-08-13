@@ -20,14 +20,20 @@ class EmailService {
         pass: config.smtp.auth.pass ? '***hidden***' : 'NOT SET'
       });
 
+      const port = Number(config.smtp.port) || 465;
+      const secure = config.smtp.secure === true || port === 465;
+
       this.transporter = nodemailer.createTransport({
-        host: config.smtp.host,
-        port: config.smtp.port,
-        secure: config.smtp.secure,
+        host: config.smtp.host || 'smtp.gmail.com',
+        port: port,
+        secure: secure,
         auth: {
           user: config.smtp.auth.user,
           pass: config.smtp.auth.pass
         },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 12000,
         tls: { rejectUnauthorized: false }
       });
 
@@ -129,11 +135,16 @@ class EmailService {
         `
       };
 
-      const result = await this.transporter.sendMail(mailOptions);
+      console.log(`📧 Attempting to send OTP email to ${email}... (Code: ${otp})`);
+      const sendPromise = this.transporter.sendMail(mailOptions);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('SMTP email sending timed out after 10s. Port 587 may be blocked by host.')), 10000)
+      );
+      const result = await Promise.race([sendPromise, timeoutPromise]);
       console.log('OTP email sent successfully:', result.messageId);
       return { success: true, messageId: result.messageId };
     } catch (error) {
-      console.error('Error sending OTP email:', error);
+      console.error('Error sending OTP email:', error.message || error);
       return { success: false, error: error.message };
     }
   }
