@@ -805,6 +805,11 @@ app.post('/api/schemes/fetch', authenticateToken, async (req, res) => {
   }
 });
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ message: 'AgriGo Analytics API Backend is running', health: '/api/health' });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
