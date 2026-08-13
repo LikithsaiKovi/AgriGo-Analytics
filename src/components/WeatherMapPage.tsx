@@ -119,8 +119,22 @@ export function WeatherMapPage() {
   
   
   
-  // Initialize map when component mounts
+  // Initialize map and detect user location when component mounts
   useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLat(pos.coords.latitude);
+          setLon(pos.coords.longitude);
+          if (mapRef.current) {
+            mapRef.current.setView([pos.coords.latitude, pos.coords.longitude], 10);
+          }
+        },
+        () => {
+          // keep default location
+        }
+      );
+    }
     if (mapContainerRef.current && !mapRef.current) {
       initializeMap();
     }

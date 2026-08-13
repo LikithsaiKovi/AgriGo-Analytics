@@ -19,24 +19,80 @@ interface WeatherData {
   timestamp: string;
 }
 
-interface RealTimeWeatherProps {
-  lat?: number;
-  lon?: number;
+async function fetchOpenMeteoWeather(latitude: number, longitude: number): Promise<WeatherData | null> {
+  try {
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,weather_code`
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const current = json.current;
+    
+    let locName = `${latitude.toFixed(2)}°, ${longitude.toFixed(2)}°`;
+    try {
+      const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+      if (geoRes.ok) {
+        const geoJson = await geoRes.json();
+        if (geoJson && geoJson.address) {
+          const a = geoJson.address;
+          locName = `${a.city || a.town || a.village || a.county || a.state || 'Local Region'}, ${a.country || ''}`;
+        }
+      }
+    } catch (e) {
+      // fallback to lat, lon
+    }
+
+    const codeDesc: { [key: number]: { desc: string; icon: string } } = {
+      0: { desc: 'Clear sky', icon: '01d' },
+      1: { desc: 'Mainly clear', icon: '02d' },
+      2: { desc: 'Partly cloudy', icon: '02d' },
+      3: { desc: 'Overcast', icon: '04d' },
+      45: { desc: 'Foggy', icon: '50d' },
+      48: { desc: 'Depositing rime fog', icon: '50d' },
+      51: { desc: 'Light drizzle', icon: '09d' },
+      61: { desc: 'Slight rain', icon: '10d' },
+      63: { desc: 'Moderate rain', icon: '10d' },
+      65: { desc: 'Heavy rain', icon: '10d' },
+      80: { desc: 'Slight rain showers', icon: '09d' },
+      95: { desc: 'Thunderstorm', icon: '11d' }
+    };
+
+    const info = codeDesc[current.weather_code] || { desc: 'Cloudy', icon: '03d' };
+
+    return {
+      location: locName,
+      temperature: Math.round(current.temperature_2m),
+      humidity: Math.round(current.relative_humidity_2m),
+      pressure: Math.round(current.surface_pressure),
+      windSpeed: Math.round(current.wind_speed_10m * 10) / 10,
+      description: info.desc,
+      icon: info.icon,
+      timestamp: new Date().toISOString()
+    };
+  } catch (err) {
+    return null;
+  }
 }
 
-export function RealTimeWeather({ lat = 40.7128, lon = -74.0060 }: RealTimeWeatherProps) {
+export function RealTimeWeather({ lat, lon }: RealTimeWeatherProps) {
   const { t } = useLanguage();
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isConnected, weatherData: wsWeatherData, subscribeToWeather } = useWebSocket();
-  const [currentLat, setCurrentLat] = useState<number>(lat);
-  const [currentLon, setCurrentLon] = useState<number>(lon);
+  const [currentLat, setCurrentLat] = useState<number | null>(lat ?? null);
+  const [currentLon, setCurrentLon] = useState<number | null>(lon ?? null);
   const [searchLocation, setSearchLocation] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
-  // Initialize with geolocation if available
+  // Initialize with browser geolocation if coordinates not explicitly passed
   useEffect(() => {
+    if (lat !== undefined && lon !== undefined) {
+      setCurrentLat(lat);
+      setCurrentLon(lon);
+      return;
+    }
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -44,43 +100,47 @@ export function RealTimeWeather({ lat = 40.7128, lon = -74.0060 }: RealTimeWeath
           setCurrentLon(pos.coords.longitude);
         },
         () => {
-          // keep defaults on failure
+          // Default to Hyderabad if geolocation denied/unavailable
+          setCurrentLat(17.3850);
+          setCurrentLon(78.4867);
         }
       );
+    } else {
+      setCurrentLat(17.3850);
+      setCurrentLon(78.4867);
     }
-  }, []);
-
-  // Keep state in sync with props changes
-  useEffect(() => {
-    setCurrentLat(lat);
-    setCurrentLon(lon);
   }, [lat, lon]);
 
   // Fetch weather data when coords change
   useEffect(() => {
+    if (currentLat === null || currentLon === null) return;
+
     const fetchWeather = async () => {
       try {
         setIsLoading(true);
+        setError(null);
+        
+        // Try backend API first
         const response = await apiService.getCurrentWeather(currentLat, currentLon);
         if (response.success && response.data) {
           setWeatherData(response.data);
+          return;
+        }
+
+        // Live Open-Meteo keyless fallback for 100% real weather anywhere in the world
+        const liveFallback = await fetchOpenMeteoWeather(currentLat, currentLon);
+        if (liveFallback) {
+          setWeatherData(liveFallback);
         } else {
-          setError(response.error || 'Failed to fetch weather data');
+          setError('Failed to fetch weather data');
         }
       } catch (err) {
-        // If backend is not available, show mock data
-        console.log('Backend not available, showing mock data');
-        setWeatherData({
-          location: 'New York, NY',
-          temperature: 22,
-          humidity: 65,
-          pressure: 1013,
-          windSpeed: 12,
-          description: 'Partly cloudy',
-          icon: '02d',
-          timestamp: new Date().toISOString()
-        });
-        setError(null);
+        const liveFallback = await fetchOpenMeteoWeather(currentLat, currentLon);
+        if (liveFallback) {
+          setWeatherData(liveFallback);
+        } else {
+          setError('Failed to load real-time weather');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -96,21 +156,26 @@ export function RealTimeWeather({ lat = 40.7128, lon = -74.0060 }: RealTimeWeath
       setIsSearching(true);
       setError(null);
       
-      // Use geocoding to get coordinates for the location
+      // Use geocoding to get coordinates for the search location
       const response = await apiService.getGeocodingData(searchLocation);
       
       if (response.success && response.data) {
-        const { lat, lon, name } = response.data;
+        const { lat, lon } = response.data;
         setCurrentLat(lat);
         setCurrentLon(lon);
         setSearchLocation('');
-        
-        // Fetch weather for the new location
-        const weatherResponse = await apiService.getCurrentWeather(lat, lon);
-        if (weatherResponse.success && weatherResponse.data) {
-          setWeatherData(weatherResponse.data);
-        }
       } else {
+        // Direct Nominatim geocoding fallback
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchLocation)}&format=json&limit=1`);
+        if (geoRes.ok) {
+          const geoJson = await geoRes.json();
+          if (geoJson && geoJson.length > 0) {
+            setCurrentLat(parseFloat(geoJson[0].lat));
+            setCurrentLon(parseFloat(geoJson[0].lon));
+            setSearchLocation('');
+            return;
+          }
+        }
         setError('Location not found');
       }
     } catch (err) {
@@ -123,14 +188,16 @@ export function RealTimeWeather({ lat = 40.7128, lon = -74.0060 }: RealTimeWeath
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
+      setIsLoading(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setCurrentLat(position.coords.latitude);
           setCurrentLon(position.coords.longitude);
         },
-        (error) => {
-          console.error('Geolocation error:', error);
+        (err) => {
+          console.error('Geolocation error:', err);
           setError('Unable to get current location');
+          setIsLoading(false);
         }
       );
     } else {
@@ -254,12 +321,12 @@ export function RealTimeWeather({ lat = 40.7128, lon = -74.0060 }: RealTimeWeath
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Location Search */}
-        {/* <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4">
           <Input
-            placeholder={t('weather.search.location')}
+            placeholder="Search city (e.g. Hyderabad, London, New York)..."
             value={searchLocation}
             onChange={(e) => setSearchLocation(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && searchLocationWeather()}
+            onKeyDown={(e) => e.key === 'Enter' && searchLocationWeather()}
             className="flex-1"
           />
           <Button
@@ -270,17 +337,18 @@ export function RealTimeWeather({ lat = 40.7128, lon = -74.0060 }: RealTimeWeath
             {isSearching ? (
               <RefreshCw className="h-4 w-4 animate-spin" />
             ) : (
-              <MapPin className="h-4 w-4" />
+              <Search className="h-4 w-4" />
             )}
           </Button>
           <Button
             onClick={getCurrentLocation}
             variant="outline"
             size="sm"
+            title="Use My Location"
           >
-            <MapPin className="h-4 w-4" />
+            <MapPin className="h-4 w-4 text-emerald-600" />
           </Button>
-        </div> */}
+        </div>
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-2xl font-bold">{weatherData.location}</h3>
