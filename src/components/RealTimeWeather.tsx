@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Cloud, Droplets, Wind, Thermometer, Eye, MapPin, RefreshCw, AlertCircle } from 'lucide-react';
+import { Cloud, Droplets, Wind, Thermometer, Eye, MapPin, RefreshCw, AlertCircle, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { useWebSocket } from '../hooks/useWebSocket';
